@@ -5,8 +5,8 @@ from Crypto.Cipher import AES
 import os
 import sys
 from pathlib import Path
-from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QPushButton, QVBoxLayout, QLineEdit, QLabel
-from PyQt5.QtCore import QSize
+from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QPushButton, QVBoxLayout, QLineEdit, QLabel, QScrollArea, QHBoxLayout, QVBoxLayout, QSizePolicy
+from PyQt5.QtCore import QSize, Qt
 from qtwidgets import PasswordEdit
 
 global ITERATIONS
@@ -17,22 +17,27 @@ ITERATIONS = 500000 #Hash ITERATIONS.
 
 #GUI functions
 
-def init_GUI(): 
+def init_login_GUI(): 
     app = QApplication(sys.argv)
 
-    window = MainWindow()
-    window.show()
+    loginWindow = LoginWindow()
+    loginWindow.show()
 
     app.exec()
     return
 
-class MainWindow(QMainWindow) :
+def init_pw_GUI():
+    return
+
+class LoginWindow(QMainWindow) :
     def __init__(self):
         super().__init__()
 
         self.setWindowTitle("Password Manager")
 
         self.show_login_screen()
+
+        self.passwordWindow = PasswordWindow()
 
         self.setFixedSize(QSize(400,300))
         self.setMinimumSize(QSize(400,300))
@@ -76,7 +81,9 @@ class MainWindow(QMainWindow) :
             encryption_key = hashlib.pbkdf2_hmac('sha3_256',bytes(self.password_input.text(), 'utf-8'), salt, ITERATIONS)
             stored_hash = master_password_database.loc[master_password_database["User"] == username, "Hash"].values[0]
             if (hash == stored_hash) :
-                print("Correct Password!")
+                print("Correct Password.")
+                self.passwordWindow.show()
+                self.destroy()
             else :
                 self.label.setText("Incorrect Username/Password")
         else: #username does not match anything in database.
@@ -129,6 +136,134 @@ class MainWindow(QMainWindow) :
             print('created account!')
             self.label.setText("Success! Your account has been created.")
 
+class PasswordWindow(QMainWindow) :
+    def __init__(self):
+        super().__init__()
+
+        self.setWindowTitle("Password Manager")
+
+        pw1 = passwordInterface()
+        pw2 = passwordInterface()
+
+        password_layout = QVBoxLayout()
+
+        for pw in range(0,10): #make this dependant on however many passwords one has.
+            pw = passwordInterface()
+            password_layout.addWidget(pw)
+
+        # password_layout.addWidget(pw1)
+        # password_layout.addWidget(pw2)
+
+        password_container = QWidget()
+        password_container.setLayout(password_layout)
+
+
+        scroll_area = QScrollArea()
+        scroll_area.setWidget(password_container)
+
+
+        header = headerWidget()
+        header.sizeHint().setHeight(500)
+
+        header_scroller = QScrollArea()
+        header_scroller.setWidget(header)
+        header_scroller.verticalScrollBar().hide()
+        header_scroller.horizontalScrollBar().hide()
+        # header_scroller.sizePolicy().setVerticalPolicy(QSizePolicy.Fixed)
+        # header_scroller.adjustSize()
+        header_scroller.setMinimumSize(QSize(200,45))
+
+        scroll_area.sizePolicy().setVerticalPolicy(QSizePolicy.Expanding)
+
+
+        header_scroller_container = QWidget()
+        #header_scroller.minimumSize().setHeight(100)
+
+        #what the fuck is going on here. why won't the sizes work.
+
+        scroll_area.horizontalScrollBar().valueChanged.connect(lambda val,bar=header_scroller: move_other_scrollbar(val,bar))
+
+        #header_scroller.setHorizontalScrollBar(scroll_area.horizontalScrollBar())
+
+        window_layout = QVBoxLayout()
+        window_layout.addWidget(header_scroller,0)
+        window_layout.addWidget(scroll_area,1)
+
+        #window_layout.maximumSize().setHeight(10)
+
+        window_container = QWidget()
+        window_container.setLayout(window_layout)
+        #window_container.resize(500,10)
+
+        self.setCentralWidget(window_container)
+
+
+        #self.setMinimumSize(QSize(800,600))
+
+        def move_other_scrollbar(val, bar):
+            bar.horizontalScrollBar().setValue(val)
+
+
+
+
+class passwordInterface(QWidget) : #interface for 
+    def __init__(self):
+        super().__init__()
+
+
+        self.name_line = QLineEdit()
+        self.username_line = QLineEdit()
+        self.url_line = QLineEdit()
+        self.email_line = QLineEdit()
+        self.password_line = PasswordEdit()
+        self.notes_line = QLineEdit()
+        self.save_button = QPushButton()
+        self.save_button.setText("Save")
+
+        self.password_layout = QHBoxLayout()
+        self.password_layout.addWidget(self.name_line)
+        self.password_layout.addWidget(self.username_line)
+        self.password_layout.addWidget(self.url_line)
+        self.password_layout.addWidget(self.email_line)
+        self.password_layout.addWidget(self.password_line)
+        self.password_layout.addWidget(self.notes_line)
+        self.password_layout.addWidget(self.save_button)
+        self.setLayout(self.password_layout)
+
+class headerWidget(QWidget) : 
+    def __init__(self):
+        super().__init__()
+
+        self.name_label = QLabel()
+        self.name_label.setText("Name:")
+        # self.name_label.sizeHint().setHeight(10)
+        # self.name_label.sizePolicy().setVerticalPolicy(QSizePolicy.Fixed)
+        self.username_label = QLabel()
+        self.username_label.setText("Username:")
+        self.url_label = QLabel()
+        self.url_label.setText("URL:")
+        self.email_label = QLabel()
+        self.email_label.setText("Email:")
+        self.password_label = QLabel()
+        self.password_label.setText("Password:")
+        self.notes_label = QLabel()
+        self.notes_label.setText("Notes:")
+        self.spacer = QLabel()
+
+        self.header_layout = QHBoxLayout()
+        self.header_layout.addWidget(self.name_label)
+        self.header_layout.addWidget(self.username_label)
+        self.header_layout.addWidget(self.url_label)
+        self.header_layout.addWidget(self.email_label)
+        self.header_layout.addWidget(self.password_label)
+        self.header_layout.addWidget(self.notes_label)
+        self.header_layout.addWidget(self.spacer)
+        self.header_layout.setSpacing(125)
+        self.setLayout(self.header_layout)
+
+
+
+
 
 ## Database functions
 
@@ -143,7 +278,7 @@ def init_database(): #load database files, or if there are none, generate an emp
 
     password_database_path = program_path + "\passwords.csv"
     if os.path.exists(password_database_path) : password_database = pd.read_pickle(password_database_path)
-    else : password_database = pd.DataFrame(columns=['User','Name','URL','Email','Notes','Encrypted Password','Salt'])
+    else : password_database = pd.DataFrame(columns=['User','Website Username','URL','Email','Notes','Encrypted Password','Salt'])
 
     #master_password_database.loc[len(master_password_database)] = ['Cooper','hashabc','saltxyz'] # initial test values.
     return
@@ -177,7 +312,7 @@ def main():
     init_database()
     print("Database:")
     print(master_password_database)
-    init_GUI()
+    init_login_GUI()
     #master_password_database.loc[len(master_password_database)] = ['Cooper','hashabc','saltxyz'] # add item to database
     return
 
