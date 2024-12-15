@@ -8,6 +8,7 @@ from pathlib import Path
 from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QPushButton, QVBoxLayout, QLineEdit, QLabel, QScrollArea, QHBoxLayout, QVBoxLayout, QSizePolicy
 from PyQt5.QtCore import QSize, Qt
 from qtwidgets import PasswordEdit
+import traceback
 
 global ITERATIONS
 global program_path
@@ -15,13 +16,39 @@ global encryption_key #not sure if keeping this as a global variable is ok or no
 program_path = os.path.dirname(os.path.abspath(__file__)) #Get path of where the script is working.
 ITERATIONS = 500000 #Hash ITERATIONS.
 
+''' 
+TODO:
+
+    LoginWindow
+    -Define Criteria for bad passwords (e.g. too short, no unique characters.)
+    -Reject bad master passwords.
+
+    PasswordInterface
+    -Add a Logout button.
+        -where?
+    -Save information to database when "save" is clicked
+        -Encrypt the passwords when this happens.
+        -Give it a unique identifier.
+    -Add a delete button to interface.
+        -Add an "are you sure?" pop up window.
+        -Make sure database handles completely empty entries.
+            -what to do with changes in unique identifier (index)?
+
+    General
+    -Make there can only be one program running at a time?
+
+'''
+
+
 #GUI functions
 
 def init_login_GUI(): 
     app = QApplication(sys.argv)
 
-    loginWindow = LoginWindow()
-    loginWindow.show()
+    #loginWindow = LoginWindow()
+    debug = PasswordWindow()
+    debug.show()
+    #loginWindow.show()
 
     app.exec()
     return
@@ -35,12 +62,16 @@ class LoginWindow(QMainWindow) :
 
         self.setWindowTitle("Password Manager")
 
-        self.show_login_screen()
+        self.show_login_screen() #BRING BACK
+
 
         self.passwordWindow = PasswordWindow()
 
+        
+
         self.setFixedSize(QSize(400,300))
         self.setMinimumSize(QSize(400,300))
+
 
     def show_login_screen(self): # Initial Login screen
         self.password_input = PasswordEdit()
@@ -131,7 +162,7 @@ class LoginWindow(QMainWindow) :
             hash = hashlib.sha256(bytes(self.password_input.text(), 'utf-8') + salt)
             hash = hash.digest()
             encryption_key = hashlib.pbkdf2_hmac('sha3_256',bytes(self.password_input.text(), 'utf-8'), salt, ITERATIONS) #create an encryption key for each password.
-            add_user_to_database(self.username_input.text(),hash,salt,master_password_database)
+            add_user_to_master_database(self.username_input.text(),hash,salt,master_password_database)
             save_database_to_file("masterpasswords.pkl",master_password_database)
             print('created account!')
             self.label.setText("Success! Your account has been created.")
@@ -142,14 +173,15 @@ class PasswordWindow(QMainWindow) :
 
         self.setWindowTitle("Password Manager")
 
-        pw1 = passwordInterface()
-        pw2 = passwordInterface()
+        pw1 = PasswordInterface()
+        pw2 = PasswordInterface()
 
         password_layout = QVBoxLayout()
 
         for pw in range(0,10): #make this dependant on however many passwords one has.
-            pw = passwordInterface()
-            password_layout.addWidget(pw)
+            pwI = PasswordInterface()
+            pwI.setIdNumber(pw)
+            password_layout.addWidget(pwI)
 
         # password_layout.addWidget(pw1)
         # password_layout.addWidget(pw2)
@@ -206,19 +238,28 @@ class PasswordWindow(QMainWindow) :
 
 
 
-class passwordInterface(QWidget) : #interface for 
+class PasswordInterface(QWidget) : #interface for 
     def __init__(self):
         super().__init__()
 
+        self.__id_number__ = 0 #changable unique id number.
+        self.notEditable = True #cannot edit lines by default.
 
         self.name_line = QLineEdit()
+        self.name_line.setReadOnly(self.notEditable)
         self.username_line = QLineEdit()
+        self.username_line.setReadOnly(self.notEditable)
         self.url_line = QLineEdit()
+        self.url_line.setReadOnly(self.notEditable)
         self.email_line = QLineEdit()
+        self.email_line.setReadOnly(self.notEditable)
         self.password_line = PasswordEdit()
+        self.password_line.setReadOnly(self.notEditable)
         self.notes_line = QLineEdit()
-        self.save_button = QPushButton()
-        self.save_button.setText("Save")
+        self.notes_line.setReadOnly(self.notEditable)
+        self.edit_or_save_button = QPushButton()
+        self.edit_or_save_button.setText("Edit")
+        self.edit_or_save_button.clicked.connect(self.edit_or_save_button_pressed)
 
         self.password_layout = QHBoxLayout()
         self.password_layout.addWidget(self.name_line)
@@ -227,30 +268,61 @@ class passwordInterface(QWidget) : #interface for
         self.password_layout.addWidget(self.email_line)
         self.password_layout.addWidget(self.password_line)
         self.password_layout.addWidget(self.notes_line)
-        self.password_layout.addWidget(self.save_button)
+        self.password_layout.addWidget(self.edit_or_save_button)
         self.setLayout(self.password_layout)
+
+    def edit_or_save_button_pressed(self):
+        if (self.notEditable) : # change to save mode
+            self.notEditable = False #swap
+            self.edit_or_save_button.setText("Save")
+        else : # change to edit mode
+            self.notEditable = True
+            print(self.getIdNumber())
+            self.edit_or_save_button.setText("Edit")
+
+        #update 
+        self.name_line.setReadOnly(self.notEditable)
+        self.username_line.setReadOnly(self.notEditable)
+        self.url_line.setReadOnly(self.notEditable)
+        self.email_line.setReadOnly(self.notEditable)
+        self.password_line.setReadOnly(self.notEditable)
+        self.notes_line.setReadOnly(self.notEditable)
+
+    def getIdNumber(self):
+        return self.__id_number__
+
+    def setIdNumber(self, value): #must be an integer.
+        if isinstance(value, int):
+            self.__id_number__ = value
+        else :
+            print("ERROR: PasswordInterface.setIdNumber() needs integer input.")
+            return -1
+
+    def save_data_to_database(self):
+        #TODO: send data into database.
+        return
+
 
 class headerWidget(QWidget) : 
     def __init__(self):
         super().__init__()
 
         self.name_label = QLabel()
-        self.name_label.setText("Name:")
-        # self.name_label.sizeHint().setHeight(10)
-        # self.name_label.sizePolicy().setVerticalPolicy(QSizePolicy.Fixed)
+        self.name_label.setText("Name:                  ")
         self.username_label = QLabel()
-        self.username_label.setText("Username:")
+        self.username_label.setText("Username:                ")
         self.url_label = QLabel()
-        self.url_label.setText("URL:")
+        self.url_label.setText("URL:                     ")
         self.email_label = QLabel()
-        self.email_label.setText("Email:")
+        self.email_label.setText("Email:                   ")
         self.password_label = QLabel()
-        self.password_label.setText("Password:")
+        self.password_label.setText("Password:                     ")
         self.notes_label = QLabel()
-        self.notes_label.setText("Notes:")
+        self.notes_label.setText("Notes:                             ")
         self.spacer = QLabel()
 
         self.header_layout = QHBoxLayout()
+        self.header_layout.addWidget(self.spacer)
         self.header_layout.addWidget(self.name_label)
         self.header_layout.addWidget(self.username_label)
         self.header_layout.addWidget(self.url_label)
@@ -258,7 +330,7 @@ class headerWidget(QWidget) :
         self.header_layout.addWidget(self.password_label)
         self.header_layout.addWidget(self.notes_label)
         self.header_layout.addWidget(self.spacer)
-        self.header_layout.setSpacing(125)
+        self.header_layout.setSpacing(50)
         self.setLayout(self.header_layout)
 
 
@@ -293,7 +365,7 @@ def grab_salt_of_user(username,df) :
     salt = df.loc[df["User"] == username, "Salt"].values[0]
     return salt
 
-def add_user_to_database(username,hash,salt,df):
+def add_user_to_master_database(username,hash,salt,df):
     df.loc[len(df)] = [username,hash,salt] # initial test values.
     return
 
