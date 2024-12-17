@@ -30,7 +30,6 @@ TODO:
         -Encrypt the passwords when this happens.
         -Give it a unique identifier.
     -Add a delete button to interface.
-        -Add an "are you sure?" pop up window.
         -Make sure database handles completely empty entries.
             -what to do with changes in unique identifier (index)?
 
@@ -260,8 +259,13 @@ class PasswordInterface(QWidget) : #interface for
         self.edit_or_save_button = QPushButton()
         self.edit_or_save_button.setText("Edit")
         self.edit_or_save_button.clicked.connect(self.edit_or_save_button_pressed)
+        self.delete_button = QPushButton()
+        self.delete_button.setText("X")
+        self.delete_button.setMaximumWidth(20)
+        self.delete_button.clicked.connect(self.delete_button_pressed)
 
         self.password_layout = QHBoxLayout()
+        self.password_layout.addWidget(self.delete_button)
         self.password_layout.addWidget(self.name_line)
         self.password_layout.addWidget(self.username_line)
         self.password_layout.addWidget(self.url_line)
@@ -288,6 +292,11 @@ class PasswordInterface(QWidget) : #interface for
         self.password_line.setReadOnly(self.notEditable)
         self.notes_line.setReadOnly(self.notEditable)
 
+    def delete_button_pressed(self):
+        self.delete_window = deleteWindow()
+        self.delete_window.show()
+        return
+
     def getIdNumber(self):
         return self.__id_number__
 
@@ -301,6 +310,46 @@ class PasswordInterface(QWidget) : #interface for
     def save_data_to_database(self):
         #TODO: send data into database.
         return
+
+
+
+class deleteWindow(QMainWindow) :
+    def __init__(self):
+        super().__init__()
+        
+        self.label = QLabel()
+        self.label.setAlignment(Qt.AlignCenter)
+        self.label.setText("Are you sure you wish to delete this?")
+
+        self.yes_button = QPushButton()
+        self.yes_button.setText("Yes")
+        self.yes_button.released.connect(self.yes_button_released)
+        self.no_button = QPushButton()
+        self.no_button.setText("No")
+        self.no_button.released.connect(self.no_button_released)
+
+        self.button_layout = QHBoxLayout()
+        self.button_layout.addWidget(self.yes_button)
+        self.button_layout.addWidget(self.no_button)
+        self.button_container = QWidget()
+        self.button_container.setLayout(self.button_layout)
+
+        self.window_layout = QVBoxLayout()
+        self.window_layout.addWidget(self.label)
+        self.window_layout.addWidget(self.button_container)
+        self.window_container = QWidget()
+        self.window_container.setLayout(self.window_layout)
+
+        self.setCentralWidget(self.window_container)
+
+        self.setFixedSize(QSize(250,100))
+
+    def yes_button_released(self) :
+        #TODO: delete database entry here
+        return
+        
+    def no_button_released(self):
+        self.destroy()
 
 
 class headerWidget(QWidget) : 
