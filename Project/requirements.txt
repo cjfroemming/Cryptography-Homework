@@ -1,0 +1,5 @@
+pandas==2.2.3
+pycryptodome==3.21.0
+PyQt5==5.15.11
+PyQt5_sip==12.16.1
+qtwidgets==1.1

@@ -1,4 +1,3 @@
-import numpy as np
 import pandas as pd
 import hashlib
 import json
@@ -31,9 +30,6 @@ TODO:
     LoginWindow
     -Define Criteria for bad passwords (e.g. too short, no unique characters.)
     -Reject bad master passwords.
-
-    Password Database
-    -Encrypt all information of database instead of just the password.
 
     General
     -Make there can only be one program running at a time?
