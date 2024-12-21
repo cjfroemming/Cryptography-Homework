@@ -20,6 +20,7 @@ Dependencies:
 - PyQt5==5.15.11
 - PyQt5_sip==12.16.1
 - qtwidgets==1.1
+- qtpy==2.4.2
 - Any other external libraries or tools.
 
 To install dependencies:
